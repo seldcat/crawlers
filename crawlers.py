@@ -14,14 +14,11 @@ def get_news_tass():
     soup = BeautifulSoup(pages.text, "lxml")
 
     for news in soup.select('a[class^=tass_pkg_link]'):
-        news_url = urljoin('https://tass.ru', news['href'])
-        title = news.select('span[class^=ds_ext_title]')[0].contents[0]
-
-        item = {
-            '_timestamp': int(time.time()),
-            'url': news_url,
-            'title': title
-        }
+        item = make_news_item(
+            title=news.select('span[class^=ds_ext_title]')[0].contents[0],
+            url_article=urljoin('https://tass.ru', news['href']),
+            platform='tass'
+        )
         yield item
 
 
@@ -79,14 +76,34 @@ def extract_item_from_enclosure(news):
     cells = news.select('div.table__cell')
     text_from_cells = cells[1].text.split('\n')
     urls_from_cells = list(map(lambda x: x['href'], cells[1].select('a[href]')))
+    item = make_news_item(
+        title=text_from_cells[3],
+        platform='e-disclosure',
+        url_article=urls_from_cells[1],
+        source=text_from_cells[-2]
+    )
+    item['company'] = text_from_cells[1]
+    item['url_companu'] = urls_from_cells[0]
+    return item
+
+
+def make_news_item(title=None,
+                   platform=None,
+                   type='news',
+                   url_article=None,
+                   source=None):
     item = {
-        'time': cells[0].text,
-        'company': text_from_cells[1],
-        'url_company': urls_from_cells[0],
-        'title': text_from_cells[3],
-        'url_title': urls_from_cells[1],
-        'source': text_from_cells[-2]
+        '_timestamp': int(time.time()),
+        'type': type
     }
+    if title:
+        item['title'] = title
+    if platform:
+        item['platform'] = platform
+    if url_article:
+        item['url_article'] = url_article
+    if source:
+        item['source'] = source
     return item
 
 
