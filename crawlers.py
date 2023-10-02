@@ -67,15 +67,37 @@ def parse_feed(feeds_list):
 
 
 def get_news_enclosure():
-    pass
+    url = 'https://www.e-disclosure.ru/'
+    pages = requests.get(url)
+    soup = BeautifulSoup(pages.text, "lxml")
+
+    for news in soup.select('div.table__cell div.table__row'):
+        yield extract_item_from_enclosure(news)
 
 
-while True:    # TODO retries
-    for elem in get_news_tass():
-        print(elem)
+def extract_item_from_enclosure(news):
+    cells = news.select('div.table__cell')
+    text_from_cells = cells[1].text.split('\n')
+    urls_from_cells = list(map(lambda x: x['href'], cells[1].select('a[href]')))
+    item = {
+        'time': cells[0].text,
+        'company': text_from_cells[1],
+        'url_company': urls_from_cells[0],
+        'title': text_from_cells[3],
+        'url_title': urls_from_cells[1],
+        'source': text_from_cells[-2]
+    }
+    return item
 
-    for elem in get_news_tass_rss():
-        print(elem)
 
-    time.sleep(5)
+# while True:    # TODO retries
+#     for elem in get_news_tass():
+#         print(elem)
+#
+#     for elem in get_news_tass_rss():
+#         print(elem)
+#
+#     time.sleep(5)
 
+for elem in get_news_enclosure():
+    print(elem)
