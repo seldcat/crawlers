@@ -90,14 +90,14 @@ def extract_item_from_enclosure(news):
     return item
 
 
-# while True:    # TODO retries
-#     for elem in get_news_tass():
-#         print(elem)
-#
-#     for elem in get_news_tass_rss():
-#         print(elem)
-#
-#     time.sleep(5)
+while True:    # TODO retries if access denied
+    for elem in get_news_tass():
+        print(elem)
 
-for elem in get_news_enclosure():
-    print(elem)
+    for elem in get_news_tass_rss():
+        print(elem)
+
+    for elem in get_news_enclosure():
+        print(elem)
+
+    time.sleep(5)
