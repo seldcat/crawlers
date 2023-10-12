@@ -43,23 +43,21 @@ class ExtractorNews:
     def get_news_tass(self):
         url = "https://tass.ru/ekonomika"
         response = requests.get(url, headers=self.headers, timeout=10)
-        with open('test.html', 'w') as file:
-            file.write(response.text)
 
         soup = BeautifulSoup(response.text, "lxml")
 
         all_news = soup.select(self.SELECTOR_NEWS_TASS)
-        print(all_news)
 
         # have there been any new news
         first_url = urljoin('https://tass.ru', all_news[0]['href'])
         if first_url == self.tass:
+            self.logger.info(f'Already up-to-date in <{url}>')
             return
         self.tass = first_url
 
         for news in all_news:
             item = self._make_news_item(
-                title=news.select('span[class^=ds_ext_title]')[0].contents[0],
+                title=news.select('span')[0].contents[0],
                 url_article=urljoin('https://tass.ru', news['href']),
                 platform='tass'
             )
@@ -93,7 +91,7 @@ class ExtractorNews:
         for feed in feeds_list:
 
             result_item = self._make_news_item(title=feed.get('title'),
-                                               platform='tass',
+                                               platform='tass_rss',
                                                url_article=feed.get('link'),
                                                source='https://tass.ru/rss/v2.xml')
 
@@ -118,7 +116,7 @@ class ExtractorNews:
         # have there been any new news
         first_url = self.extract_item_from_disclosure(all_news[0])['url_article']
         if first_url == self.disclosure:
-            self.logger.info(f'Already up-to-date in <https://www.e-disclosure.ru/>')
+            self.logger.info(f'Already up-to-date in <{url}>')
             return
         self.disclosure = first_url
 
