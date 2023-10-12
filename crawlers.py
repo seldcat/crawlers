@@ -84,12 +84,7 @@ class ExtractorNews:
             return
 
     def parse_feed(self, feeds_list):
-        # have there been any new news
-        first_url = feeds_list[0].get('link')
-        if first_url == self.tass_rss:
-            self.logger.info(f'Already up-to-date in <https://tass.ru/rss/v2.xml>')
-            return
-
+        all_items = []
         for feed in feeds_list:
 
             result_item = self._make_news_item(title=feed.get('title'),
@@ -103,12 +98,17 @@ class ExtractorNews:
             if categories := [tag.term.strip() for tag in feed.get('tags', [])]:
                 result_item['category'] = categories
 
-            # когда дошли до статьи, которую уже обрабатывали, выходим из цикла, тк обрабатывать больше не надо
+            if categories and 'Экономика и бизнес' in categories:
+                all_items.append(result_item)
+
+        first_url = all_items[0]['url_article']
+        if first_url == self.tass_rss:
+            self.logger.info(f'Already up-to-date in <https://tass.ru/rss/v2.xml>')
+            return
+        for item in all_items:
             if item['url_article'] == self.tass_rss:
                 break
-
-            if categories and 'Экономика и бизнес' in categories:
-                yield result_item
+            yield item
 
         self.tass_rss = first_url
 
@@ -126,7 +126,6 @@ class ExtractorNews:
         if first_url == self.disclosure:
             self.logger.info(f'Already up-to-date in <{url}>')
             return
-        self.disclosure = first_url
 
         for news in all_news:
             item = self.extract_item_from_disclosure(news)
@@ -187,4 +186,4 @@ if __name__ == "__main__":
             print(item)
         logger.debug(f'CRAWLED <https://tass.ru/rss/v2.xml>')
 
-        time.sleep(5)
+        # time.sleep(5)
