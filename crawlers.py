@@ -1,10 +1,10 @@
-from bs4 import BeautifulSoup
-import requests
-from urllib.parse import urljoin
-import feedparser
-import time
 import logging
+import time
+from urllib.parse import urljoin
 
+import feedparser
+import requests
+from bs4 import BeautifulSoup
 
 # Initialize the logger
 logger = logging.getLogger('my_logger')
@@ -65,6 +65,8 @@ class ExtractorNews:
             )
             yield item
 
+    # ------------------------------------------------------------------
+
     def get_news_tass_rss(self):
         url = 'https://tass.ru/rss/v2.xml'
 
@@ -104,6 +106,8 @@ class ExtractorNews:
             if categories and 'Экономика и бизнес' in categories:
                 yield result_item
 
+    # ------------------------------------------------------------------
+
     def get_news_disclosure(self):
         url = 'https://www.e-disclosure.ru/'
         pages = requests.get(url)
@@ -135,6 +139,8 @@ class ExtractorNews:
         item['url_company'] = urls_from_cells[0]
         return item
 
+    # ------------------------------------------------------------------
+
     @staticmethod
     def _make_news_item(title=None,
                         platform=None,
@@ -159,8 +165,9 @@ class ExtractorNews:
 if __name__ == "__main__":
     extractor = ExtractorNews()
     while True:    # TODO retries if access denied(?)
-        # for item in extractor.get_news_tass():
-        #     print(item)
+        for item in extractor.get_news_tass():
+            print(item)
+        logger.debug(f'CRAWLED <https://tass.ru/ekonomika>')
         for item in extractor.get_news_disclosure():
             print(item)
         logger.debug(f'CRAWLED <https://www.e-disclosure.ru/>')
