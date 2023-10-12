@@ -53,7 +53,6 @@ class ExtractorNews:
         if first_url == self.tass:
             self.logger.info(f'Already up-to-date in <{url}>')
             return
-        self.tass = first_url
 
         for news in all_news:
             item = self._make_news_item(
@@ -61,7 +60,11 @@ class ExtractorNews:
                 url_article=urljoin('https://tass.ru', news['href']),
                 platform='tass'
             )
+            # когда дошли до статьи, которую уже обрабатывали, выходим из цикла, тк обрабатывать больше не надо
+            if item['url_article'] == self.tass:
+                break
             yield item
+        self.tass = first_url
 
     # ------------------------------------------------------------------
 
@@ -86,7 +89,6 @@ class ExtractorNews:
         if first_url == self.tass_rss:
             self.logger.info(f'Already up-to-date in <https://tass.ru/rss/v2.xml>')
             return
-        self.tass_rss = first_url
 
         for feed in feeds_list:
 
@@ -101,8 +103,14 @@ class ExtractorNews:
             if categories := [tag.term.strip() for tag in feed.get('tags', [])]:
                 result_item['category'] = categories
 
+            # когда дошли до статьи, которую уже обрабатывали, выходим из цикла, тк обрабатывать больше не надо
+            if item['url_article'] == self.tass_rss:
+                break
+
             if categories and 'Экономика и бизнес' in categories:
                 yield result_item
+
+        self.tass_rss = first_url
 
     # ------------------------------------------------------------------
 
@@ -121,7 +129,13 @@ class ExtractorNews:
         self.disclosure = first_url
 
         for news in all_news:
-            yield self.extract_item_from_disclosure(news)
+            item = self.extract_item_from_disclosure(news)
+            # когда дошли до статьи, которую уже обрабатывали, выходим из цикла, тк обрабатывать больше не надо
+            if item['url_article'] == self.tass:
+                break
+            yield item
+
+        self.disclosure = first_url
 
     def extract_item_from_disclosure(self, news):
         cells = news.select('div.table__cell')
