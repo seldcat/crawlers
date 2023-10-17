@@ -100,17 +100,16 @@ class ExtractorNews:
 
             if categories and 'Экономика и бизнес' in categories:
                 all_items.append(result_item)
-
-        first_url = all_items[0]['url_article']
-        if first_url == self.tass_rss:
+        all_items.sort(key=lambda x: x['url_article'], reverse=True)
+        latest_url = all_items[0]['url_article']
+        if latest_url == self.tass_rss:
             self.logger.info(f'Already up-to-date in <https://tass.ru/rss/v2.xml>')
             return
         for item in all_items:
-            if item['url_article'] == self.tass_rss:
-                break
-            yield item
+            if item['url_article'] > self.tass_rss:
+                yield item
 
-        self.tass_rss = first_url
+        self.tass_rss = latest_url
 
     # ------------------------------------------------------------------
 
@@ -175,7 +174,7 @@ class ExtractorNews:
 
 if __name__ == "__main__":
     extractor = ExtractorNews()
-    while True:    # TODO retries if access denied(?)
+    while True:
         for item in extractor.get_news_tass():
             print(item)
         logger.debug(f'CRAWLED <https://tass.ru/ekonomika>')
