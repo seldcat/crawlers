@@ -33,11 +33,11 @@ class ExtractorNews:
     SELECTOR_NEWS_DISCLOSURE = 'div.table__cell div.table__row'
 
     def __init__(self):
-        self.tass = ''
-        self.disclosure = ''
-        self.tass_rss = ''
-        self.headers = {'User-agent': 'Mozilla/5.0 (Linux; Android 13; CPH2211 Build/TP1A.220905.001) AppleWebKit/537.36 '
-                                '(KHTML, like Gecko) Version/4.0 Chrome/115.0.5790.166'}
+        self.latest_url_tass = ''
+        self.latest_url_disclosure = ''
+        self.latest_url_tass_rss = ''
+        self.headers = {'User-agent': 'Mozilla/5.0 (Linux; Android 13; CPH2211 Build/TP1A.220905.001) '
+                                      'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/115.0.5790.166'}
         self.logger = logger
 
     def get_news_tass(self):
@@ -48,23 +48,26 @@ class ExtractorNews:
 
         all_news = soup.select(self.SELECTOR_NEWS_TASS)
 
-        # have there been any new news
-        first_url = urljoin('https://tass.ru', all_news[0]['href'])
-        if first_url == self.tass:
-            self.logger.info(f'Already up-to-date in <{url}>')
-            return
-
+        all_items = list()
         for news in all_news:
             item = self._make_news_item(
                 title=news.select('span')[0].contents[0],
                 url_article=urljoin('https://tass.ru', news['href']),
                 platform='tass'
             )
-            # когда дошли до статьи, которую уже обрабатывали, выходим из цикла, тк обрабатывать больше не надо
-            if item['url_article'] == self.tass:
-                break
-            yield item
-        self.tass = first_url
+            all_items.append(item)
+
+        all_items.sort(key=lambda x: x['url_article'], reverse=True)
+
+        latest_url = all_items[0]['url_article']
+        if latest_url == self.latest_url_tass:
+            self.logger.info(f'Already up-to-date in <https://tass.ru/rss/v2.xml>')
+            return
+        i = 0
+        while i < len(all_items) and all_items[i]['url_article'] > self.latest_url_tass:
+            yield all_items[i]
+            i += 1
+        self.latest_url_tass = all_items[0]['url_article']
 
     # ------------------------------------------------------------------
 
@@ -88,7 +91,7 @@ class ExtractorNews:
         for feed in feeds_list:
 
             result_item = self._make_news_item(title=feed.get('title'),
-                                               platform='tass_rss',
+                                               platform='latest_url_tass_rss',
                                                url_article=feed.get('link'),
                                                source='https://tass.ru/rss/v2.xml')
 
@@ -100,16 +103,18 @@ class ExtractorNews:
 
             if categories and 'Экономика и бизнес' in categories:
                 all_items.append(result_item)
+
         all_items.sort(key=lambda x: x['url_article'], reverse=True)
+
         latest_url = all_items[0]['url_article']
-        if latest_url == self.tass_rss:
+        if latest_url == self.latest_url_tass_rss:
             self.logger.info(f'Already up-to-date in <https://tass.ru/rss/v2.xml>')
             return
-        for item in all_items:
-            if item['url_article'] > self.tass_rss:
-                yield item
-
-        self.tass_rss = latest_url
+        i = 0
+        while i < len(all_items) and all_items[i]['url_article'] > self.latest_url_tass_rss:
+            yield all_items[i]
+            i += 1
+        self.latest_url_tass_rss = all_items[0]['url_article']
 
     # ------------------------------------------------------------------
 
@@ -120,20 +125,23 @@ class ExtractorNews:
 
         all_news = soup.select(self.SELECTOR_NEWS_DISCLOSURE)
 
-        # have there been any new news
-        first_url = self.extract_item_from_disclosure(all_news[0])['url_article']
-        if first_url == self.disclosure:
-            self.logger.info(f'Already up-to-date in <{url}>')
-            return
-
+        all_items = list()
         for news in all_news:
             item = self.extract_item_from_disclosure(news)
-            # когда дошли до статьи, которую уже обрабатывали, выходим из цикла, тк обрабатывать больше не надо
-            if item['url_article'] == self.tass:
-                break
-            yield item
+            all_items.append(item)
 
-        self.disclosure = first_url
+        all_items.sort(key=lambda x: x['url_article'], reverse=True)
+
+        latest_url = all_items[0]['url_article']
+        if latest_url == self.latest_url_disclosure:
+            self.logger.info(f'Already up-to-date in <https://tass.ru/rss/v2.xml>')
+            return
+        i = 0
+        while i < len(all_items) and all_items[i]['url_article'] > self.latest_url_disclosure:
+            yield all_items[i]
+            i += 1
+
+        self.latest_url_disclosure = all_items[0]['url_article']
 
     def extract_item_from_disclosure(self, news):
         cells = news.select('div.table__cell')
